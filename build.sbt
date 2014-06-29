@@ -6,13 +6,12 @@ import java.io.File
 import sbt.IO
 
 import AssemblyKeys._
-import CoverallsPlugin.CoverallsKeys._
 
 organization := "org.ensime"
 
 name := "ensime"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.9.3"
 
 git.baseVersion := "1.0"
 
@@ -25,11 +24,9 @@ libraryDependencies <<= scalaVersion { scalaVersion => Seq(
   "asm"                        %  "asm-commons"          % "3.3.1",
   "asm"                        %  "asm-util"             % "3.3.1",
   "com.googlecode.json-simple" %  "json-simple"          % "1.1.1" intransitive(),
-  "org.scalatest"              %% "scalatest"            % "2.2.0" % "test",
+  "org.scalatest"              %% "scalatest"            % "1.9.2" % "test",
   "org.scalariform"            %% "scalariform"          % "0.1.4",
   "org.scala-lang"             %  "scala-compiler"       % scalaVersion,
-  "org.scala-lang"             %  "scala-reflect"        % scalaVersion,
-  "org.scala-lang"             %  "scala-actors"         % scalaVersion,
   "org.scala-refactoring"      %% "org.scala-refactoring.library" % "0.6.2"
 )}
 
@@ -44,14 +41,8 @@ val JavaTools = {
 
 internalDependencyClasspath in Compile += { Attributed.blank(JavaTools)}
 
-// 0.10 is busted
-addCompilerPlugin("org.brianmckenna" %% "wartremover" % "0.9")
-
 scalacOptions in Compile ++= Seq(
-  "-encoding", "UTF-8", "-target:jvm-1.6", "-feature", //"-Xfatal-warnings",
-  "-language:postfixOps", "-language:implicitConversions"
-  //"-P:wartremover:only-warn-traverser:org.brianmckenna.wartremover.warts.Unsafe"
-  //"-P:wartremover:traverser:org.brianmckenna.wartremover.warts.Unsafe"
+  "-encoding", "UTF-8", "-unchecked" //, "-Xfatal-warnings"
 )
 
 javacOptions in (Compile, compile) ++= Seq (
@@ -84,14 +75,3 @@ net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 scalariformSettings
 
-instrumentSettings
-
-// let's bump this every time we get more tests
-ScoverageKeys.minimumCoverage := 12
-
-// might be buggy
-ScoverageKeys.highlighting := true
-
-ScoverageKeys.failOnMinimumCoverage := true
-
-coverallsSettings

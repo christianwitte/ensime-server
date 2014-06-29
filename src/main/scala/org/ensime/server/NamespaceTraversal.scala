@@ -34,7 +34,7 @@ trait NamespaceTraversal { self: RichPresentationCompiler =>
     def visitType(sym: Symbol)
   }
 
-  import rootMirror.EmptyPackage
+  import definitions.EmptyPackage
 
   def traverse(v: NamespaceVisitor, sym: Symbol) {
     try {

@@ -36,9 +36,9 @@ import org.ensime.protocol.ProtocolConversions
 import org.ensime.protocol.ProtocolConst._
 import org.ensime.util._
 import scala.actors._
-import scala.reflect.internal.util.RangePosition
+import scala.tools.nsc.util.RangePosition
 import scala.tools.nsc.Settings
-import scala.reflect.internal.util.OffsetPosition
+import scala.tools.nsc.util.OffsetPosition
 
 case class FullTypeCheckCompleteEvent()
 case class CompilerFatalError(e: Throwable)

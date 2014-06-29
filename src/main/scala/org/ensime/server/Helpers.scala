@@ -30,7 +30,7 @@ import scala.tools.nsc.interactive.Global
 
 trait Helpers { self: Global =>
 
-  import rootMirror.{ RootPackage, EmptyPackage }
+  import definitions.{ RootPackage, EmptyPackage }
 
   def applySynonyms(sym: Symbol): List[Symbol] = {
     val members = if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {

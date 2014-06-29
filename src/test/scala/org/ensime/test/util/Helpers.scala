@@ -3,7 +3,7 @@ package org.ensime.test.util
 import scala.actors.Actor._
 import scala.tools.nsc.Settings
 import scala.tools.nsc.reporters.StoreReporter
-import scala.reflect.internal.util.BatchSourceFile
+import scala.tools.nsc.util.BatchSourceFile
 import org.ensime.server._
 import org.ensime.config._
 import org.scalatest.exceptions.TestFailedException

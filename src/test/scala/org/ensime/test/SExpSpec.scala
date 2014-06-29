@@ -1,6 +1,6 @@
 package org.ensime.test
 import org.scalatest.FunSpec
-import org.scalatest.ShouldMatchers
+import org.scalatest.matchers.ShouldMatchers
 import org.ensime.util.SExp
 
 class SExpSpec extends FunSpec with ShouldMatchers {

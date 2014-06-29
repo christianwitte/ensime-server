@@ -72,10 +72,9 @@ import scala.actors.Actor
 import scala.collection.mutable
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
 import scala.tools.nsc.util._
-import scala.reflect.internal.util._
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.reporters.Reporter
-import scala.reflect.internal.util.{ RangePosition, SourceFile }
+import scala.tools.nsc.util.{ RangePosition, SourceFile }
 import scala.tools.nsc.Settings
 import scala.tools.refactoring.analysis.GlobalIndexes
 
@@ -386,9 +385,9 @@ class RichPresentationCompiler(
   protected def symbolByName(name: String): Option[Symbol] = {
     try {
       val sym = if (name.endsWith("$")) {
-        rootMirror.getModuleByName(newTermName(name.substring(0, name.length - 1)))
+        definitions.getModule(newTermName(name.substring(0, name.length - 1)))
       } else {
-        rootMirror.getClassByName(newTypeName(name))
+        definitions.getClass(newTypeName(name))
       }
       sym match {
         case NoSymbol => None

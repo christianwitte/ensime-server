@@ -1,9 +1,9 @@
 package org.ensime.test
 import org.scalatest.FunSpec
-import org.scalatest.ShouldMatchers
+import org.scalatest.matchers.ShouldMatchers
 import org.ensime.protocol.SwankProtocol
-import scala.reflect.internal.util.RangePosition
-import scala.reflect.internal.util.BatchSourceFile
+import scala.tools.nsc.util.RangePosition
+import scala.tools.nsc.util.BatchSourceFile
 import scala.tools.nsc.io.{ VirtualFile, PlainFile, ZipArchive }
 
 class SwankProtocolSpec extends FunSpec with ShouldMatchers {

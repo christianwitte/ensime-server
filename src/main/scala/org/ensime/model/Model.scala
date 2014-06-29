@@ -28,7 +28,7 @@
 package org.ensime.model
 import java.io.File
 import scala.collection.mutable
-import scala.reflect.internal.util.{ NoPosition, Position }
+import scala.tools.nsc.util.{ NoPosition, Position }
 import scala.tools.nsc.io.AbstractFile
 import org.ensime.util.CanonFile
 import org.ensime.server.RichPresentationCompiler
@@ -232,7 +232,7 @@ class TypeInspectInfo(val tpe: TypeInfo, val companionId: Option[Int], val super
 
 trait ModelBuilders { self: RichPresentationCompiler =>
 
-  import rootMirror.RootPackage
+  import definitions.RootPackage
 
   private val typeCache = new mutable.HashMap[Int, Type]
   private val typeCacheReverse = new mutable.HashMap[Type, Int]
@@ -260,7 +260,7 @@ trait ModelBuilders { self: RichPresentationCompiler =>
     else if (sym.pos != NoPosition) sym.pos
     else {
       val pack = sym.enclosingPackage.fullName
-      val top = sym.enclosingTopLevelClass
+      val top = sym.toplevelClass
       val name = if (sym.owner.isPackageObjectClass) "package$.class"
       else top.name + (if (top.isModuleClass) "$" else "")
       indexer !? (1000, SourceFileCandidatesReq(pack, name)) match {

@@ -28,7 +28,7 @@
 package org.ensime.server
 import org.ensime.model.CompletionInfoList
 import scala.collection.mutable
-import scala.reflect.internal.util.{ SourceFile, BatchSourceFile }
+import scala.tools.nsc.util.{ SourceFile, BatchSourceFile }
 import org.ensime.util.Arrays
 import org.ensime.model.{ CompletionInfo, CompletionSignature, SymbolSearchResult }
 
