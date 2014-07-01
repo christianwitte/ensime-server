@@ -1,30 +1,3 @@
-/**
- *  Copyright (c) 2010, Aemon Cannon
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *      * Neither the name of ENSIME nor the
- *        names of its contributors may be used to endorse or promote products
- *        derived from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *  DISCLAIMED. IN NO EVENT SHALL Aemon Cannon BE LIABLE FOR ANY
- *  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- *  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package org.ensime.protocol
 
 import java.io._
@@ -2012,7 +1985,7 @@ trait SwankProtocol extends Protocol {
     }
   }
 
-  def toWF(obj: DebugLocation): SExp = {
+  override def toWF(obj: DebugLocation): SExp = {
     obj match {
       case obj: DebugObjectReference => toWF(obj)
       case obj: DebugArrayElement => toWF(obj)
@@ -2045,7 +2018,7 @@ trait SwankProtocol extends Protocol {
       key(":offset"), obj.offset)
   }
 
-  def toWF(obj: DebugValue): SExp = {
+  override def toWF(obj: DebugValue): SExp = {
     obj match {
       case obj: DebugPrimitiveValue => toWF(obj)
       case obj: DebugObjectInstance => toWF(obj)
@@ -2054,32 +2027,37 @@ trait SwankProtocol extends Protocol {
       case obj: DebugNullValue => toWF(obj)
     }
   }
-  def toWF(obj: DebugNullValue): SExp = {
+
+  override def toWF(obj: DebugNullValue): SExp = {
     SExp(
       key(":val-type"), 'null,
       key(":type-name"), obj.typeName)
   }
-  def toWF(obj: DebugPrimitiveValue): SExp = {
+
+  override def toWF(obj: DebugPrimitiveValue): SExp = {
     SExp(
       key(":val-type"), 'prim,
       key(":summary"), obj.summary,
       key(":type-name"), obj.typeName)
   }
-  def toWF(obj: DebugClassField): SExp = {
+
+  override def toWF(obj: DebugClassField): SExp = {
     SExp(
       key(":index"), obj.index,
       key(":name"), obj.name,
       key(":summary"), obj.summary,
       key(":type-name"), obj.typeName)
   }
-  def toWF(obj: DebugObjectInstance): SExp = {
+
+  override def toWF(obj: DebugObjectInstance): SExp = {
     SExp(
       key(":val-type"), 'obj,
       key(":fields"), SExpList(obj.fields.map(toWF)),
       key(":type-name"), obj.typeName,
       key(":object-id"), obj.objectId.toString)
   }
-  def toWF(obj: DebugStringInstance): SExp = {
+
+  override def toWF(obj: DebugStringInstance): SExp = {
     SExp(
       key(":val-type"), 'str,
       key(":summary"), obj.summary,
@@ -2087,7 +2065,8 @@ trait SwankProtocol extends Protocol {
       key(":type-name"), obj.typeName,
       key(":object-id"), obj.objectId.toString)
   }
-  def toWF(obj: DebugArrayInstance): SExp = {
+
+  override def toWF(obj: DebugArrayInstance): SExp = {
     SExp(
       key(":val-type"), 'arr,
       key(":length"), obj.length,
@@ -2096,7 +2075,7 @@ trait SwankProtocol extends Protocol {
       key(":object-id"), obj.objectId.toString)
   }
 
-  def toWF(obj: DebugStackLocal): SExp = {
+  override def toWF(obj: DebugStackLocal): SExp = {
     SExp(
       key(":index"), obj.index,
       key(":name"), obj.name,
@@ -2104,7 +2083,7 @@ trait SwankProtocol extends Protocol {
       key(":type-name"), obj.typeName)
   }
 
-  def toWF(obj: DebugStackFrame): SExp = {
+  override def toWF(obj: DebugStackFrame): SExp = {
     SExp(
       key(":index"), obj.index,
       key(":locals"), SExpList(obj.locals.map(toWF)),
@@ -2115,14 +2094,14 @@ trait SwankProtocol extends Protocol {
       key(":this-object-id"), obj.thisObjectId.toString)
   }
 
-  def toWF(obj: DebugBacktrace): SExp = {
+  override def toWF(obj: DebugBacktrace): SExp = {
     SExp(
       key(":frames"), SExpList(obj.frames.map(toWF)),
       key(":thread-id"), obj.threadId.toString,
       key(":thread-name"), obj.threadName)
   }
 
-  def toWF(pos: SourcePosition): SExp = {
+  override def toWF(pos: SourcePosition): SExp = {
     SExp(
       key(":file"), pos.file.getAbsolutePath,
       key(":line"), pos.line)
@@ -2136,7 +2115,7 @@ trait SwankProtocol extends Protocol {
       key(":version"), info.protocolVersion)
   }
 
-  def toWF(evt: SendBackgroundMessageEvent): SExp = {
+  override def toWF(evt: SendBackgroundMessageEvent): SExp = {
     SExp(key(":background-message"), evt.code,
       evt.detail.map(strToSExp).getOrElse(NilAtom()))
   }
@@ -2524,7 +2503,7 @@ trait SwankProtocol extends Protocol {
       (":is-callable", value.isCallable))
   }
 
-  def toWF(value: NamedTypeMemberInfo): SExp = {
+  override def toWF(value: NamedTypeMemberInfo): SExp = {
     SExp.propList(
       (":name", value.name),
       (":type", toWF(value.tpe)),
@@ -2532,7 +2511,7 @@ trait SwankProtocol extends Protocol {
       (":decl-as", value.declaredAs))
   }
 
-  def toWF(value: EntityInfo): SExp = {
+  override def toWF(value: EntityInfo): SExp = {
     value match {
       case value: PackageInfo => toWF(value)
       case value: TypeInfo => toWF(value)
@@ -2655,9 +2634,7 @@ trait SwankProtocol extends Protocol {
           (":decl-as", value.declaredAs),
           (":pos", toWF(value.pos)),
           (":owner-name", value.owner))
-      case unknownValue => throw new IllegalStateException("Unknown SymbolSearchResult: " + unknownValue)
     }
-
   }
 
   def toWF(value: Undo): SExp = {
