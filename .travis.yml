@@ -5,7 +5,7 @@ scala:
 - 2.9.2
 - 2.9.3
 after_success:
-- sbt clean publish
+- sbt ++$TRAVIS_SCALA_VERSION clean publish
 env:
   global:
     # travis encrypt -r ensime/ensime-server SONATYPE_USERNAME=<USERNAME>
