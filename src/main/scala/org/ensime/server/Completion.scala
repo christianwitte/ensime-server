@@ -1,10 +1,14 @@
 package org.ensime.server
 
+import akka.pattern.Patterns
+import akka.util.Timeout
 import org.ensime.model.CompletionInfoList
 import scala.collection.mutable
+import scala.concurrent.Await
 import scala.reflect.internal.util.{ SourceFile, BatchSourceFile }
 import org.ensime.util.Arrays
 import org.ensime.model.{ CompletionInfo, CompletionSignature, SymbolSearchResults }
+import scala.concurrent.duration._
 
 trait CompletionControl {
   self: RichPresentationCompiler =>
@@ -20,9 +24,9 @@ trait CompletionControl {
     var score = 0
     if (sym.nameString.startsWith(prefix)) score += 10
     if (!inherited) score += 10
-    if (!sym.isPackage) score += 10
+    if (!sym.hasPackageFlag) score += 10
     if (!sym.isType) score += 10
-    if (sym.isLocal) score += 10
+    if (sym.isLocalToBlock) score += 10
     if (sym.isPublic) score += 10
     if (viaView == NoSymbol) score += 10
     if (sym.owner != definitions.AnyClass &&
@@ -50,13 +54,24 @@ trait CompletionControl {
 
     def makeTypeSearchCompletions(prefix: String): List[CompletionInfo] = {
       val req = TypeCompletionsReq(prefix, maxResults)
-      indexer !? (1000, req) match {
+
+      import scala.concurrent.ExecutionContext.Implicits.{ global => exe }
+
+      val askRes = Patterns.ask(indexer, req, Timeout(1000.milliseconds))
+      val optFut = askRes.map(Some(_)).recover { case _ => None }
+      val result = Await.result(optFut, Duration.Inf)
+
+      result match {
         case Some(s: SymbolSearchResults) =>
           s.syms.map { s =>
-            CompletionInfo(s.localName, CompletionSignature(List(), s.name),
+            CompletionInfo(s.localName, CompletionSignature(List.empty, s.name),
               -1, isCallable = false, 40, Some(s.name))
           }.toList
-        case _ => List()
+        case None =>
+          logger.warn("request timed out")
+          List.empty
+        case unknown =>
+          throw new IllegalStateException("Unexpected response type from request:" + unknown)
       }
     }
 
@@ -72,11 +87,12 @@ trait CompletionControl {
           case _ =>
         }
       } while (!x.isComplete)
-      println("Found " + members.size + " members.")
+
+      logger.info("Found " + members.size + " members.")
 
       askOption[Unit] {
         val filtered = filterMembersByPrefix(members, prefix, matchEntire = false, caseSens = caseSens)
-        println("Filtered down to " + filtered.size + ".")
+        logger.info("Filtered down to " + filtered.size + ".")
         for (m <- filtered) {
           m match {
             case m @ ScopeMember(sym, tpe, accessible, viaView) =>
@@ -99,7 +115,7 @@ trait CompletionControl {
         askReloadFile(p.source)
         val typeSearchSyms = if (path.isEmpty) {
           makeTypeSearchCompletions(prefix)
-        } else List()
+        } else List.empty
         (prefix,
           askCompletePackageMember(path, prefix) ++
           typeSearchSyms)
@@ -114,8 +130,8 @@ trait CompletionControl {
         askTypeCompletion(p, x)
         (prefix, makeAll(x, prefix, constructing))
       case _ =>
-        System.err.println("Unrecognized completion context.")
-        ("", List())
+        logger.error("Unrecognized completion context.")
+        ("", List.empty)
     }
     CompletionInfoList(prefix, results.sortWith({ (c1, c2) =>
       c1.relevance > c2.relevance ||
@@ -128,7 +144,7 @@ trait CompletionControl {
   private val nonIdent = "[^a-zA-Z0-9_]"
   private val ws = "[ \n\r\t]"
 
-  trait CompletionContext {}
+  trait CompletionContext
 
   private val packRE = ("^.*?(?:package|import)[ ]+((?:[a-z0-9]+\\.)*)(?:(" + ident + "*)|\\{.*?(" + ident + "*))$").r
   case class PackageContext(path: String, prefix: String) extends CompletionContext
@@ -136,10 +152,10 @@ trait CompletionControl {
     if (packRE.findFirstMatchIn(preceding).isDefined) {
       val m = packRE.findFirstMatchIn(preceding).get
       if (m.group(2) != null) {
-        println("Matched package context: " + m.group(1) + "," + m.group(2))
+        logger.info("Matched package context: " + m.group(1) + "," + m.group(2))
         Some(PackageContext(m.group(1), m.group(2)))
       } else {
-        println("Matched package context: " + m.group(1) + "," + m.group(3))
+        logger.info("Matched package context: " + m.group(1) + "," + m.group(3))
         Some(PackageContext(m.group(1), m.group(3)))
       }
     } else None
@@ -186,25 +202,25 @@ trait CompletionControl {
     var mo = nameFollowingWhiteSpaceRE.findFirstMatchIn(preceding)
     if (mo.isDefined) {
       val m = mo.get
-      println("Matched sym after ws context.")
+      logger.info("Matched sym after ws context.")
       return Some(SymbolContext(p, m.group(1), constructing = false))
     }
     mo = nameFollowingSyntaxRE.findFirstMatchIn(preceding)
     if (mo.isDefined) {
       val m = mo.get
-      println("Matched sym following syntax context.")
+      logger.info("Matched sym following syntax context.")
       return Some(SymbolContext(p, m.group(2), constructing = false))
     }
     mo = constructorNameRE.findFirstMatchIn(preceding)
     if (mo.isDefined) {
       val m = mo.get
-      println("Matched constructing context.")
+      logger.info("Matched constructing context.")
       return Some(SymbolContext(p, m.group(1), constructing = true))
     }
     mo = nameFollowingReservedRE.findFirstMatchIn(preceding)
     if (mo.isDefined) {
       val m = mo.get
-      println("Matched sym following reserved context.")
+      logger.info("Matched sym following reserved context.")
       return Some(SymbolContext(p, m.group(1), constructing = false))
     }
     mo = nameFollowingControl.findFirstMatchIn(preceding)
@@ -215,7 +231,7 @@ trait CompletionControl {
       // parens.
       if (parenBalanced(m.group(1))) {
 
-        println("Matched sym following control structure context.")
+        logger.info("Matched sym following control structure context.")
         return Some(SymbolContext(p, m.group(2), constructing = false))
       }
     }
@@ -225,8 +241,7 @@ trait CompletionControl {
   private def spliceSource(s: SourceFile, start: Int, end: Int,
     replacement: String): SourceFile = {
     new BatchSourceFile(s.file,
-      Arrays.splice(s.content, start, end,
-        replacement.toArray))
+      Arrays.splice(s.content, start, end, replacement.toArray))
   }
 
   private val memberRE = "([\\. ]+)([^\\. ]*)$".r
@@ -237,7 +252,7 @@ trait CompletionControl {
     memberRE.findFirstMatchIn(preceding) match {
       case Some(m) =>
         val constructing = memberConstructorRE.findFirstMatchIn(preceding).isDefined
-        println("Matched member context. Constructing? " + constructing)
+        logger.info("Matched member context. Constructing? " + constructing)
         val dot = m.group(1)
         val prefix = m.group(2)
 
@@ -249,7 +264,7 @@ trait CompletionControl {
           " ()")
 
         // Move point back to target of method selection.
-        val newP = p.withSource(src, 0).withPoint(p.point - prefix.length - dot.length)
+        val newP = p.withSource(src).withShift(-(prefix.length + dot.length))
 
         Some(MemberContext(newP, prefix, constructing))
       case None => None
@@ -262,8 +277,8 @@ trait CompletionControl {
     val bol = src.lineToOffset(lineNum)
     val line = src.lineToString(lineNum)
     val preceding = line.take(p.point - bol)
-    println("Line: " + line)
-    println("Preceding: " + preceding)
+    logger.info("Line: " + line)
+    logger.info("Preceding: " + preceding)
     packageContext(preceding).
       orElse(symContext(p, preceding)).
       orElse(memberContext(p, preceding))
@@ -280,12 +295,12 @@ trait Completion { self: RichPresentationCompiler =>
           s == NoSymbol || s.nameString.contains("$")
         }
         memberSyms.flatMap { s =>
-          val name = if (s.isPackage) { s.nameString } else { typeShortName(s) }
+          val name = if (s.hasPackageFlag) { s.nameString } else { typeShortName(s) }
           if (name.startsWith(prefix)) {
-            Some(CompletionInfo(name, CompletionSignature(List(), ""), -1, isCallable = false, 50, None))
+            Some(CompletionInfo(name, CompletionSignature(List.empty, ""), -1, isCallable = false, 50, None))
           } else None
         }.toList
-      case _ => List()
+      case _ => List.empty
     }
   }
 

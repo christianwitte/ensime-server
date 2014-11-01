@@ -1,13 +1,9 @@
 package org.ensime.protocol
 
 import java.io._
-import org.ensime.config.{ ReplConfig, ProjectConfig }
-import org.ensime.indexer.MethodBytecode
-import org.ensime.model._
-import org.ensime.server._
+
+import akka.actor.ActorRef
 import org.ensime.util._
-import scala.actors._
-import scala.reflect.internal.util.{ Position, RangePosition }
 
 case class IncomingMessageEvent(obj: Any)
 case class OutgoingMessageEvent(obj: Any)
@@ -42,7 +38,13 @@ object ProtocolConst {
 
 }
 
-trait Protocol extends ProtocolConversions {
+trait Protocol {
+
+  /**
+   * Protocols must expose an appropriate class for converting messages to
+   * the underlying wire format
+   */
+  val conversions: ProtocolConversions
 
   /**
    * Read a message from the socket.
@@ -50,16 +52,15 @@ trait Protocol extends ProtocolConversions {
    * @param  reader  The stream from which to read the message.
    * @return         The message, in the intermediate format.
    */
-  def readMessage(reader: InputStream): WireFormat
+  def readMessage(reader: InputStreamReader): WireFormat
 
   /**
    * Write a message to the socket.
    *
    * @param  value  The message to write.
    * @param  writer The stream to which to write the message.
-   * @return        Void
    */
-  def writeMessage(value: WireFormat, writer: OutputStream)
+  def writeMessage(value: WireFormat, writer: OutputStream): Unit
 
   /**
    * Send a message in wire format to the client. Message
@@ -67,10 +68,10 @@ trait Protocol extends ProtocolConversions {
    * output socket.
    *
    * @param  o  The message to send.
-   * @return    Void
    */
-  def sendMessage(o: WireFormat) {
-    peer ! OutgoingMessageEvent(o)
+  def sendMessage(o: WireFormat): Unit = {
+    if (peer != null)
+      peer ! OutgoingMessageEvent(o)
   }
 
   /**
@@ -79,20 +80,17 @@ trait Protocol extends ProtocolConversions {
    * to the rpcTarget.
    *
    * @param  msg  The message we've received.
-   * @return        Void
    */
-  def handleIncomingMessage(msg: Any)
+  def handleIncomingMessage(msg: Any): Unit
 
   /**
    * Designate an actor that should receive outgoing
    * messages.
-   * TODO: Perhaps a channel would be more efficient?
    *
    * @param  peer  The Actor.
-   * @return        Void
    */
-  def setOutputActor(peer: Actor)
-  protected def peer: Actor
+  def setOutputActor(peer: ActorRef): Unit
+  protected def peer: ActorRef
 
   /**
    * Designate the target to which RPC handling
@@ -101,7 +99,7 @@ trait Protocol extends ProtocolConversions {
    * @param  target The RPCTarget instance.
    * @return        Void
    */
-  def setRPCTarget(target: RPCTarget)
+  def setRPCTarget(target: RPCTarget): Unit
 
   /**
    * Send a simple RPC Return with a 'true' value.
@@ -109,26 +107,23 @@ trait Protocol extends ProtocolConversions {
    * other return value is required.
    *
    * @param  callId The id of the RPC call.
-   * @return        Void
    */
-  def sendRPCAckOK(callId: Int)
+  def sendRPCAckOK(callId: Int): Unit
 
   /**
    * Send an RPC Return with the given value.
    *
    * @param  value  The value to return.
    * @param  callId The id of the RPC call.
-   * @return        Void
    */
-  def sendRPCReturn(value: WireFormat, callId: Int)
+  def sendRPCReturn(value: WireFormat, callId: Int): Unit
 
   /**
    * Send an event.
    *
-   * @param  value  The event value.
-   * @return        Void
+   * @param  event  The event value.
    */
-  def sendEvent(value: WireFormat)
+  def sendEvent(event: SwankEvent): Unit
 
   /**
    * Notify the client that the RPC call could not
@@ -137,9 +132,8 @@ trait Protocol extends ProtocolConversions {
    * @param  code  Integer code denoting error type.
    * @param  detail  A message describing the error.
    * @param  callId The id of the failed RPC call.
-   * @return        Void
    */
-  def sendRPCError(code: Int, detail: Option[String], callId: Int)
+  def sendRPCError(code: Int, detail: String, callId: Int): Unit
 
   /**
    * Notify the client that a message was received
@@ -147,69 +141,6 @@ trait Protocol extends ProtocolConversions {
    *
    * @param  code  Integer code denoting error type.
    * @param  detail  A message describing the problem.
-   * @return        Void
    */
-  def sendProtocolError(code: Int, detail: Option[String])
-
-}
-
-trait ProtocolConversions {
-  def toWF(evt: SendBackgroundMessageEvent): WireFormat
-  def toWF(evt: AnalyzerReadyEvent): WireFormat
-  def toWF(evt: FullTypeCheckCompleteEvent): WireFormat
-  def toWF(evt: IndexerReadyEvent): WireFormat
-  def toWF(evt: NewNotesEvent): WireFormat
-  def toWF(evt: ClearAllNotesEvent): WireFormat
-  def toWF(evt: DebugEvent): WireFormat
-
-  def toWF(obj: DebugLocation): WireFormat
-  def toWF(obj: DebugValue): WireFormat
-  def toWF(evt: DebugNullValue): WireFormat
-  def toWF(evt: DebugPrimitiveValue): WireFormat
-  def toWF(evt: DebugClassField): WireFormat
-  def toWF(obj: DebugStringInstance): WireFormat
-  def toWF(evt: DebugObjectInstance): WireFormat
-  def toWF(evt: DebugArrayInstance): WireFormat
-  def toWF(evt: DebugStackLocal): WireFormat
-  def toWF(evt: DebugStackFrame): WireFormat
-  def toWF(evt: DebugBacktrace): WireFormat
-
-  def toWF(pos: SourcePosition): WireFormat
-  def toWF(config: BreakpointList): WireFormat
-  def toWF(config: ProjectConfig): WireFormat
-  def toWF(config: ReplConfig): WireFormat
-  def toWF(value: Boolean): WireFormat
-  def toWF(value: String): WireFormat
-  def toWF(value: Note): WireFormat
-  def toWF(notelist: NoteList): WireFormat
-
-  def toWF(values: Iterable[WireFormat]): WireFormat
-  def toWF(value: CompletionInfo): WireFormat
-  def toWF(value: CompletionInfoList): WireFormat
-  def toWF(value: PackageMemberInfoLight): WireFormat
-  def toWF(value: SymbolInfo): WireFormat
-  def toWF(value: NamedTypeMemberInfoLight): WireFormat
-  def toWF(value: NamedTypeMemberInfo): WireFormat
-  def toWF(value: EntityInfo): WireFormat
-  def toWF(value: TypeInfo): WireFormat
-  def toWF(value: PackageInfo): WireFormat
-  def toWF(value: CallCompletionInfo): WireFormat
-  def toWF(value: InterfaceInfo): WireFormat
-  def toWF(value: TypeInspectInfo): WireFormat
-  def toWF(value: SymbolSearchResults): WireFormat
-  def toWF(value: ImportSuggestions): WireFormat
-  def toWF(value: SymbolSearchResult): WireFormat
-  def toWF(value: Position): WireFormat
-  def toWF(value: RangePosition): WireFormat
-  def toWF(value: FileRange): WireFormat
-  def toWF(value: SymbolDesignations): WireFormat
-
-  def toWF(value: RefactorFailure): WireFormat
-  def toWF(value: RefactorEffect): WireFormat
-  def toWF(value: RefactorResult): WireFormat
-  def toWF(value: Undo): WireFormat
-  def toWF(value: UndoResult): WireFormat
-  def toWF(value: Null): WireFormat
-  def toWF(vmStatus: DebugVmStatus): WireFormat
-  def toWF(method: MethodBytecode): WireFormat
+  def sendProtocolError(code: Int, detail: String): Unit
 }

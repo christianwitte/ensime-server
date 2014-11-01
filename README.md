@@ -3,10 +3,8 @@
 [![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=239449)](https://www.bountysource.com/trackers/239449-ensime?utm_source=239449&utm_medium=shield&utm_campaign=TRACKER_BADGE)
 [![Build Status](https://travis-ci.org/ensime/ensime-server.svg?branch=master)](https://travis-ci.org/ensime/ensime-server)
 [![Stories in Ready](https://badge.waffle.io/ensime/ensime-server.png?label=Low+Hanging+Fruit)](https://waffle.io/ensime/ensime-server)
-<!--
-[![Coverage Status](https://coveralls.io/repos/bountysource/frontend/badge.png)](https://coveralls.io/r/ensime/ensime-server)
--->
-
+[![Coverage Status](https://coveralls.io/repos/ensime/ensime-server/badge.png)](https://coveralls.io/r/ensime/ensime-server)
+[![Melpa Status](http://melpa.milkbox.net/packages/ensime-badge.svg)](http://melpa.milkbox.net/#/ensime)
 
 ENhanced Scala Interaction Mode for text Editors, especially [GNU Emacs](http://www.gnu.org/software/emacs/).
 
@@ -50,7 +48,7 @@ We are using some great technologies to automate our build and testing process:
 
 * Kanban project planning from [waffle.io](https://waffle.io/ensime/ensime-server)
 * Continuous Integration from [travis-ci.org](https://travis-ci.org/ensime/ensime-server)
-* ~~Coverage reports from coveralls.io~~ [#473](http://github.com/ensime/ensime-server/issues/473)
+* Coverage reports from coveralls.io [coveralls.io](https://coveralls.io/r/ensime/ensime-server)
 * Binary distribution from [sonatype.org](http://www.sonatype.org/)
 * Emacs distributions from [MELPA](http://melpa.milkbox.net/#/ensime)
 
@@ -66,15 +64,11 @@ We have branches for older versions of scala, which are merged regularly.
 
 # Quick Start
 
-There are a two ways to install the ENSIME server:
+See our [Quick Start Guide](http://github.com/ensime/ensime-server/wiki/Quick-Start-Guide) to learn how to install and start ENSIME.
 
-1. Install [ensime-emacs](http://github.com/ensime/ensime-emacs) and it will do it for you automatically.
-2. Build from source: fork this repo, clone locally and `sbt publishLocal`.
+ENSIME is released on a continuous "rolling release" basis every time a pull request is merged. This dramatically speeds up the development cycle and you are advised to always update your ENSIME before reporting any issues.
 
-The latter is also the recommended approach when developing ENSIME itself.
-
-
-Before reporting any problems with ENSIME, please:
+If you are still experiencing a problem with the latest version of ENSIME, before reporting an issue please:
 
 * check the [tickets flagged as FAQ](https://github.com/ensime/ensime-server/issues?labels=FAQ).
 * check the [most recently updated tickets](http://github.com/ensime/ensime-server/issues?direction=desc&sort=updated) (others are probably talking about it already with workarounds).
